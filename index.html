@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pannes ATA</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pannes ATA">
+<meta name="theme-color" content="#0d1117">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* Layout: one-column phone tool — sticky search bar + filters, result list, bottom sheet for the full procedure */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --fg:#141a22; --muted:#5b6673; --line:#d5dbe2;
+  --accent:#c77700; --accent-soft:#fff1d6; --code-bg:#1b2430; --code-fg:#ffb84a; --mel:#0a6b52; --mel-soft:#e0f3ec;
+  --font-display:-apple-system-headline,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1117; --surface:#161d26; --fg:#e8edf2; --muted:#93a0ae; --line:#283340;
+  --accent:#ffb84a; --accent-soft:#3a2a10; --code-bg:#05080c; --code-fg:#ffb84a; --mel:#5fd3a8; --mel-soft:#0f2a22; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1117; --surface:#161d26; --fg:#e8edf2; --muted:#93a0ae; --line:#283340;
+  --accent:#ffb84a; --accent-soft:#3a2a10; --code-bg:#05080c; --code-fg:#ffb84a; --mel:#5fd3a8; --mel-soft:#0f2a22; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+body{margin:0;-webkit-tap-highlight-color:transparent}
+h1{font-weight:800}
+.lock{max-width:360px;margin:18vh auto 0;display:flex;flex-direction:column;gap:14px;text-align:center}
+.lock img{width:84px;height:84px;border-radius:20px;margin:0 auto}
+.lock p{margin:0;color:var(--muted);font-size:.92rem}
+.lock input{font-size:1.2rem;text-align:center;padding:14px;border:2px solid var(--line);border-radius:12px;background:var(--surface);color:var(--fg);text-transform:uppercase;letter-spacing:.08em}
+.lock button{font-size:1rem;font-weight:700;padding:14px;border:0;border-radius:12px;background:var(--accent);color:#111;cursor:pointer}
+.lock .err{color:#d33;font-weight:700;min-height:1.2em}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.45;padding-inline:16px;padding-block:0 32px}
+.wrap{max-width:720px;margin:0 auto}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);padding-block:14px 8px;display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--line)}
+.titlerow{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{font-family:var(--font-display);font-size:1.7rem;letter-spacing:.02em;margin:0;text-transform:uppercase;line-height:1}
+h1 span{color:var(--accent)}
+.titlerow small{color:var(--muted);font-size:.78rem;text-align:right}
+button,select,input{font-family:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.search{position:relative}
+.search input{width:100%;font-size:1.05rem;padding:13px 44px 13px 14px;border:2px solid var(--line);border-radius:12px;background:var(--surface);color:var(--fg)}
+.search input:focus{border-color:var(--accent);outline:none}
+.clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);font-size:1.5rem;width:38px;height:38px;cursor:pointer}
+.row{display:flex;gap:6px}
+.modes{flex:1;display:flex;gap:4px;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:3px}
+.modes button{flex:1;font-weight:700;font-size:.85rem;padding:7px 4px;border-radius:7px;border:0;background:none;color:var(--muted);cursor:pointer}
+.modes button[aria-pressed="true"]{background:var(--code-bg);color:var(--code-fg)}
+.eng{font-size:.85rem;font-weight:700;padding:0 8px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);max-width:42%}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;font:700 .85rem var(--font-mono);padding:6px 11px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);color:#111;border-color:var(--accent)}
+.status{font-size:.82rem;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.status b{color:var(--fg);font-variant-numeric:tabular-nums}
+.list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.item{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--fg);cursor:pointer;font:inherit}
+.ata{flex:none;font:700 .8rem var(--font-mono);background:var(--code-bg);color:var(--code-fg);border-radius:7px;padding:5px 6px;min-width:76px;text-align:center;font-variant-numeric:tabular-nums}
+.itxt{min-width:0;display:flex;flex-direction:column;gap:3px}
+.msg{font-weight:700;font-size:.97rem;overflow-wrap:anywhere}
+.msg.up{font-family:var(--font-mono);font-size:.92rem}
+.sub{font-size:.82rem;color:var(--muted);overflow-wrap:anywhere}
+.tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mel);background:var(--mel-soft);border-radius:4px;padding:1px 5px;margin-right:4px}
+mark{background:var(--accent);color:#111;border-radius:3px;padding:0 1px}
+.empty{text-align:center;color:var(--muted);padding:40px 10px}
+.more{margin:12px auto 0;display:block;font-weight:700;font-size:.9rem;background:none;border:1.5px solid var(--line);color:var(--fg);border-radius:10px;padding:10px 16px;cursor:pointer}
+.foot{margin-top:24px;font-size:.75rem;color:var(--muted);text-align:center}
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-radius:18px 18px 0 0;max-height:90%;overflow-y:auto;padding:10px 18px calc(24px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px rgba(0,0,0,.25);max-width:760px;margin:0 auto}
+.grab{width:44px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+.shead{display:flex;gap:10px;align-items:flex-start;margin-bottom:6px}
+.shead .ata{margin-top:2px}
+.sheet h2{font-size:1.1rem;margin:0;overflow-wrap:anywhere;line-height:1.3;min-width:0}
+.chapline{font-size:.8rem;color:var(--muted);margin-bottom:14px}
+.close{margin-left:auto;border:0;background:var(--bg);color:var(--fg);border-radius:50%;width:38px;height:38px;font-size:1.3rem;cursor:pointer;flex:none}
+.sec{border-top:1px solid var(--line);padding-block:12px}
+.sec h3{margin:0 0 6px;font:700 .72rem var(--font-body);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sec p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.95rem}
+.ref{font-family:var(--font-mono);font-size:.88rem}
+.copy{font:700 .75rem var(--font-body);letter-spacing:0;text-transform:none;border:1.5px solid var(--line);background:var(--bg);color:var(--fg);border-radius:7px;padding:4px 9px;cursor:pointer}
+.mel{background:var(--mel-soft);border-radius:10px;padding:10px 12px;border-top:0;margin-top:4px}
+.mel h3{color:var(--mel)}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.6}}}
+</style>
+
+<form class="lock" id="lock" hidden>
+  <img src="icon-192.png" alt="">
+  <h1>Pannes <span>ATA</span></h1>
+  <p>Entre ton code d'accès. Il ne sera demandé qu'une fois sur cet appareil.</p>
+  <input id="code" autocomplete="off" autocapitalize="characters" placeholder="Code d'accès" aria-label="Code d'accès">
+  <button type="submit">Ouvrir</button>
+  <div class="err" id="err"></div>
+</form>
+<div class="wrap" id="app" hidden>
+  <header class="top">
+    <div class="titlerow">
+      <h1>Pannes <span>ATA</span></h1>
+      <small>A320 Maintenance<br>Procedures Guide</small>
+    </div>
+    <div class="search">
+      <input id="q" type="search" placeholder="Ex : 21-61, PACK FAULT, HYD G…" autocomplete="off" autocorrect="off" autocapitalize="characters" enterkeyhint="search" aria-label="Rechercher">
+      <button class="clear" id="clear" aria-label="Effacer la recherche" hidden>×</button>
+    </div>
+    <div class="row">
+      <div class="modes" role="group" aria-label="Rechercher dans">
+        <button data-mode="all" aria-pressed="true">Tout</button>
+        <button data-mode="ata" aria-pressed="false">ATA</button>
+        <button data-mode="msg" aria-pressed="false">Message</button>
+      </div>
+      <select class="eng" id="eng" aria-label="Motorisation">
+        <option value="">Tous moteurs</option>
+        <option>CFM 56</option><option>LEAP</option><option>PW1100G</option><option>V2500</option>
+      </select>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="status"><span id="count"></span><span id="chapName"></span></div>
+  </header>
+
+  <div class="list" id="list"></div>
+  <button class="more" id="more" hidden>Afficher plus</button>
+  <p class="foot">Source : A320 Maintenance Procedures Guide (165 p.). Toujours vérifier dans l'AMM / TSM / MEL en vigueur.<br><button class="more" id="logout" type="button">Verrouiller sur cet appareil</button></p>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="dMsg" hidden>
+  <div class="grab"></div>
+  <div class="shead"><span class="ata" id="dAta"></span><h2 id="dMsg"></h2><button class="close" id="dClose" aria-label="Fermer">×</button></div>
+  <div class="chapline" id="dChap"></div>
+  <div id="dBody"></div>
+</div>
+
+<script src="data.js"></script>
+<script>
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function decrypt(code){
+  const E = window.ENC, enc = new TextEncoder();
+  const base = await crypto.subtle.importKey("raw", enc.encode(code.trim().toUpperCase()), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({name:"PBKDF2", salt:b64(E.s), iterations:E.it, hash:"SHA-256"}, base, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+  const buf = await crypto.subtle.decrypt({name:"AES-GCM", iv:b64(E.iv)}, key, b64(E.ct));
+  return JSON.parse(new TextDecoder().decode(buf));
+}
+async function boot(){
+  let saved = null; try{ saved = localStorage.getItem("pannes_code"); }catch(e){}
+  if(saved){ try{ start(await decrypt(saved)); return; }catch(e){} }
+  document.getElementById("lock").hidden = false;
+  document.getElementById("code").focus();
+}
+document.getElementById("lock").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const c = document.getElementById("code").value, err = document.getElementById("err");
+  err.textContent = "Ouverture…";
+  try{ const d = await decrypt(c); try{ localStorage.setItem("pannes_code", c.trim().toUpperCase()); }catch(_){}
+       document.getElementById("lock").hidden = true; start(d); }
+  catch(_){ err.textContent = "Code incorrect."; }
+});
+document.getElementById("logout").onclick = ()=>{ try{ localStorage.removeItem("pannes_code"); }catch(e){} location.reload(); };
+if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+
+function start(RAW){
+document.getElementById("app").hidden = false;
+// row: [ata, chap, chapName, title, cb, test, amm, fin, notes]
+const $ = id => document.getElementById(id);
+const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const esc = s => String(s ?? "").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const digits = s => String(s).replace(/\D/g,"");
+
+const ROWS = RAW.map((r,i)=>{
+  const em = r[2].match(/\((CFM 56|LEAP|PW1100G|V2500)\)/);
+  const refs = (r[5]+" "+r[6]).match(/\d{2}-\d{2}-\d{2}/g) || [];
+  return { i, ata:r[0], chap:r[1], chapName:r[2], title:r[3], cb:r[4], test:r[5], amm:r[6], fin:r[7], notes:r[8],
+    eng: em ? em[1] : "", up: r[3] === r[3].toUpperCase() && /[A-Z]/.test(r[3]),
+    nt: norm(r[3]), nall: norm(r.slice(3).join(" ")), ad: [digits(r[0]), ...refs.map(digits)] };
+});
+const CHAPS = {}; ROWS.forEach(r=>{ if(!CHAPS[r.chap]) CHAPS[r.chap]=r.chapName.replace(/\s*\((CFM 56|LEAP|PW1100G|V2500)\)/,""); });
+
+function get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}}
+function put(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+
+let mode="all", chap=null, eng=get("pannes_eng",""), limit=50;
+$("eng").value = eng;
+
+function buildChips(){
+  const list = Object.keys(CHAPS).sort();
+  $("chips").innerHTML = `<button class="chip" data-c="" aria-pressed="${chap===null}">Tous</button>` +
+    list.map(c=>`<button class="chip" data-c="${c}" aria-pressed="${chap===c}" title="${esc(CHAPS[c])}">${c}</button>`).join("");
+}
+
+function hl(text, terms){
+  const src = String(text ?? "");
+  if(!terms.length) return esc(src);
+  const n = norm(src);
+  if(n.length!==src.length) return esc(src);
+  const rg=[];
+  terms.forEach(t=>{let i=0; while(t && (i=n.indexOf(t,i))>-1){rg.push([i,i+t.length]); i+=t.length;}});
+  if(!rg.length) return esc(src);
+  rg.sort((a,b)=>a[0]-b[0]);
+  let out="",pos=0;
+  rg.forEach(([s,e])=>{ if(s<pos) return; out+=esc(src.slice(pos,s))+"<mark>"+esc(src.slice(s,e))+"</mark>"; pos=e; });
+  return out+esc(src.slice(pos));
+}
+
+function search(){
+  const raw = norm($("q").value).trim();
+  const terms = raw.split(/\s+/).filter(Boolean);
+  const qd = digits(raw);
+  const looksAta = qd.length>=2 && /^[\d\s\-\.]+$/.test(raw);
+  const res = [];
+  for(const r of ROWS){
+    if(chap && r.chap!==chap) continue;
+    if(eng && r.eng && r.eng!==eng) continue;
+    let score = 0;
+    if(!terms.length) score = 1;
+    else if(mode==="ata"){
+      if(looksAta ? r.ad.some(a=>a.startsWith(qd)) : terms.every(t=>r.nall.includes(t))) score = r.ad[0].startsWith(qd) ? 3 : 1;
+    } else if(mode==="msg"){
+      if(terms.every(t=>r.nt.includes(t))) score = r.nt.startsWith(terms[0]) ? 3 : 2;
+    } else {
+      if(terms.every(t=>r.nt.includes(t))) score = r.nt.startsWith(terms[0]) ? 4 : 3;
+      else if(looksAta && r.ad.some(a=>a.startsWith(qd))) score = r.ad[0].startsWith(qd) ? 3 : 2;
+      else if(terms.every(t=>r.nall.includes(t))) score = 1;
+    }
+    if(score) res.push([score,r]);
+  }
+  if(terms.length) res.sort((a,b)=>b[0]-a[0] || a[1].i-b[1].i);
+  return {res:res.map(x=>x[1]), terms};
+}
+
+function render(){
+  $("clear").hidden = !$("q").value;
+  const {res, terms} = search();
+  $("count").innerHTML = `<b>${res.length.toLocaleString("fr-FR")}</b> résultat${res.length>1?"s":""}`;
+  $("chapName").textContent = chap ? `${chap} · ${CHAPS[chap]}` : "";
+  $("list").innerHTML = res.length ? res.slice(0,limit).map(r=>{
+    const mel = (r.notes.match(/MEL : [\d\-A-Z]+/)||[""])[0];
+    const sub = [r.eng ? `<span class="tag">${esc(r.eng)}</span>` : "", mel ? hl(mel,terms) : (r.amm && r.amm!=="Same as Test" ? "AMM "+hl(r.amm.split("\n")[0],terms) : "")].join("");
+    return `<button class="item" data-i="${r.i}">
+      <span class="ata">${esc(r.ata)}</span>
+      <span class="itxt"><span class="msg${r.up?" up":""}">${hl(r.title,terms)}</span>${sub?`<span class="sub">${sub}</span>`:""}</span>
+    </button>`;}).join("")
+    : `<div class="empty">Aucun résultat.<br>Essaie un autre mot, ou un chapitre ATA comme <b>29</b> ou <b>21-61</b>.</div>`;
+  $("more").hidden = res.length <= limit;
+}
+
+function sec(label, text, cls="", copy=false){
+  if(!text || !String(text).trim()) return "";
+  return `<div class="sec ${cls}"><h3>${label}${copy?`<button class="copy" data-copy="${esc(text)}">Copier</button>`:""}</h3><p class="${copy?"ref":""}">${esc(text)}</p></div>`;
+}
+function openDetail(i){
+  const r = ROWS[i];
+  $("dAta").textContent = r.ata;
+  $("dMsg").textContent = r.title;
+  $("dChap").textContent = `ATA ${r.chap} · ${r.chapName}`;
+  const amm = r.amm === "Same as Test" ? "Identique au test" : r.amm;
+  $("dBody").innerHTML =
+    sec("Reset / C/B", r.cb) +
+    sec("Test", r.test) +
+    sec("AMM", amm, "", amm!=="Identique au test") +
+    sec("FIN", r.fin, "", true) +
+    sec("Notes / MEL", r.notes, /MEL|NO DISPATCH|CDL/.test(r.notes) ? "mel" : "");
+  $("sheet").hidden = $("scrim").hidden = false;
+  $("sheet").scrollTop = 0;
+  $("dClose").focus();
+}
+function closeDetail(){ $("sheet").hidden = $("scrim").hidden = true; }
+
+let t;
+$("q").addEventListener("input", ()=>{ clearTimeout(t); t=setTimeout(()=>{limit=50; render();},120); });
+$("clear").onclick = ()=>{ $("q").value=""; render(); $("q").focus(); };
+document.querySelectorAll(".modes button").forEach(b=>b.onclick=()=>{
+  mode=b.dataset.mode; document.querySelectorAll(".modes button").forEach(x=>x.setAttribute("aria-pressed",x===b));
+  $("q").setAttribute("inputmode", mode==="ata" ? "decimal" : "text"); limit=50; render(); });
+$("eng").onchange = e=>{ eng=e.target.value; put("pannes_eng",eng); limit=50; render(); };
+$("chips").onclick = e=>{ const c=e.target.closest(".chip"); if(!c) return; chap=c.dataset.c||null; buildChips(); limit=50; render(); window.scrollTo({top:0}); };
+$("list").onclick = e=>{ const it=e.target.closest(".item"); if(it) openDetail(+it.dataset.i); };
+$("more").onclick = ()=>{ limit+=50; render(); };
+$("scrim").onclick = closeDetail; $("dClose").onclick = closeDetail;
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeDetail(); });
+$("dBody").onclick = e=>{
+  const b = e.target.closest(".copy"); if(!b) return;
+  const txt = b.dataset.copy;
+  const done = ()=>{ b.textContent="Copié"; setTimeout(()=>b.textContent="Copier",1500); };
+  try{ navigator.clipboard.writeText(txt).then(done).catch(()=>selectText(b)); }catch(err){ selectText(b); }
+};
+function selectText(b){ const p=b.closest(".sec").querySelector("p"); const s=getSelection(); const rg=document.createRange(); rg.selectNodeContents(p); s.removeAllRanges(); s.addRange(rg); }
+
+buildChips(); render();
+}
+boot();
+</script>
+</body>
+</html>
